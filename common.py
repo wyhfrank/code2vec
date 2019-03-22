@@ -1,4 +1,5 @@
 import re
+import os
 import json
 import sys
 from enum import Enum
@@ -22,8 +23,12 @@ class Config:
         config.EMBEDDINGS_SIZE = 128
         config.MAX_TO_KEEP = 10
         # Automatically filled, do not edit:
-        config.TRAIN_PATH = args.data_path
-        config.TEST_PATH = args.test_path
+        config.TRAIN_PATH = __class__.get_file_path(args.input_dir, 'train')
+        config.TEST_PATH = __class__.get_file_path(args.input_dir, 'test')
+        config.VAL_PATH = __class__.get_file_path(args.input_dir, 'val')
+        config.DICT_PATH = __class__.get_file_path(args.feature_dir, 'dict', ext='.c2v')
+        config.SOURCE_PATH = args.source_dir
+        # config.TEST_PATH = args.test_path
         config.SAVE_PATH = args.save_path
         config.LOAD_PATH = args.load_path
         config.RELEASE = args.release
@@ -40,6 +45,10 @@ class Config:
         self.BATCH_QUEUE_SIZE = 0
         self.TRAIN_PATH = ''
         self.TEST_PATH = ''
+        self.VAL_PATH = ''
+        self.DICT_PATH = ''
+        self.SOURCE_PATH = ''
+        self.FEATURE_EXTENSION = '.java.c2v_feature.filtered'
         self.MAX_CONTEXTS = 0
         self.WORDS_VOCAB_SIZE = 0
         self.TARGET_VOCAB_SIZE = 0
@@ -50,6 +59,14 @@ class Config:
         self.MAX_TO_KEEP = 0
         self.RELEASE = False
         self.EXPORT_CODE_VECTORS = False
+
+    @staticmethod
+    def get_file_path(path, name, ext='.csv'):
+        return os.path.join(path, name + ext)
+
+    def get_feature_file(self, id):
+        return os.path.join(self.SOURCE_PATH, id + self.FEATURE_EXTENSION)
+
 
 class common:
     noSuchWord = "NoSuchWord"

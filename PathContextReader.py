@@ -11,7 +11,7 @@ class PathContextReader:
     class_path_table = None
 
     def __init__(self, word_to_index, target_word_to_index, path_to_index, config, is_evaluating=False):
-        self.file_path = config.TEST_PATH if is_evaluating else (config.TRAIN_PATH + '.train.c2v')
+        self.file_path = config.TEST_PATH if is_evaluating else config.TRAIN_PATH
         self.batch_size = config.TEST_BATCH_SIZE if is_evaluating else min(config.BATCH_SIZE, config.NUM_EXAMPLES)
         self.num_epochs = config.NUM_EPOCHS
         self.reading_batch_size = config.READING_BATCH_SIZE if is_evaluating else min(config.READING_BATCH_SIZE, config.NUM_EXAMPLES)
@@ -20,6 +20,8 @@ class PathContextReader:
         self.data_num_contexts = config.MAX_CONTEXTS
         self.max_contexts = config.MAX_CONTEXTS
         self.is_evaluating = is_evaluating
+        self.source_path = config.SOURCE_PATH
+        self.feature_extension = config.FEATURE_EXTENSION
 
         self.word_table = PathContextReader.get_word_table(word_to_index)
         self.target_word_table = PathContextReader.get_target_word_table(target_word_to_index)
@@ -60,7 +62,7 @@ class PathContextReader:
         return self
 
     def read_file(self):
-        row = self.get_row_input()
+        row, row2, label = self.get_row_input()
         record_defaults = [[no_such_composite]] * (self.data_num_contexts + 1)
         row_parts = tf.decode_csv(row, record_defaults=record_defaults, field_delim=' ')
         word = row_parts[0]  # (batch, )
@@ -88,13 +90,35 @@ class PathContextReader:
                path_source_strings, path_strings, path_target_strings
 
     def get_row_input(self):
+        def _load_file_feature(file_id):
+            filename = self.source_path + file_id + self.feature_extension
+            raw = tf.read_file(filename)
+            return raw
+
+        def load_features(file_id1, file_id2, is_clone):
+            feature1 = _load_file_feature(file_id1)
+            feature2 = _load_file_feature(file_id2)
+            return feature1, feature2, is_clone
+
+        def parse_csv(line):
+            [file_id1, file_id2, is_clone] = line.decode('utf-8').split(',')
+            return file_id1, file_id2, int(is_clone)
+
         if self.is_evaluating:  # test, read from queue (small data)
             row = self.input_placeholder = tf.placeholder(tf.string)
         else:  # training, read from file
-            filename_queue = tf.train.string_input_producer([self.file_path], num_epochs=self.num_epochs, shuffle=False)
-            reader = tf.TextLineReader()
-            _, row = reader.read_up_to(filename_queue, num_records=self.reading_batch_size)
-        return row
+            # filename_queue = tf.train.string_input_producer([self.file_path], num_epochs=self.num_epochs, shuffle=False)
+            # reader = tf.TextLineReader()
+            # _, row = reader.read_up_to(filename_queue, num_records=self.reading_batch_size)
+
+            dataset = tf.data.TextLineDataset(self.file_path) \
+                .map(lambda x: tf.py_func(parse_csv, [x], [tf.string, tf.string, tf.int64])) \
+                .map(load_features) \
+                .batch(self.reading_batch_size)
+            iterator = dataset.make_one_shot_iterator()
+            next_element = iterator.get_next()
+
+        return next_element
 
     def input_tensors(self):
         return self.initialize_batch_outputs(self.filtered_output[:-3])

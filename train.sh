@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ###########################################################
 # Change the following values to train a new model.
 # type: the name of the new model, only affects the saved file name.
@@ -5,13 +6,14 @@
 # test_data: by default, points to the validation set, since this is the set that
 #   will be evaluated after each training iteration. If you wish to test
 #   on the final (held-out) test set, change 'val' to 'test'.
-type=java14m
-dataset_name=java14m
-data_dir=data/${dataset_name}
-data=${data_dir}/${dataset_name}
-test_data=${data_dir}/${dataset_name}.val.c2v
-model_dir=models/${type}
+type=fake_clone
+dataset_name=fake_clone
+data_root=data/${dataset_name}
+feature_dir=${data_root}/feature/
+input_dir=${data_root}/input_data/
+source_dir=${data_root}/source/
+model_dir=models/${type}/
 
-mkdir -p models/${model_dir}
+mkdir -p ${model_dir}
 set -e
-python3 -u code2vec.py --data ${data} --test ${test_data} --save ${model_dir}/saved_model
+python3 -u code2vec.py --feature_dir ${feature_dir} --input_dir ${input_dir} --source_dir ${source_dir} --save ${model_dir}/saved_model

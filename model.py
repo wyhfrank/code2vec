@@ -24,15 +24,22 @@ class Model:
         self.eval_top_words_op, self.eval_top_values_op, self.eval_original_names_op, self.eval_code_vectors = None, None, None, None
         self.predict_top_words_op, self.predict_top_values_op, self.predict_original_names_op = None, None, None
 
-        if config.TRAIN_PATH:
-            with open('{}.dict.c2v'.format(config.TRAIN_PATH), 'rb') as file:
+        if config.DICT_PATH:
+            with open(config.DICT_PATH, 'rb') as file:
                 word_to_count = pickle.load(file)
                 path_to_count = pickle.load(file)
                 target_to_count = pickle.load(file)
                 num_training_examples = pickle.load(file)
-                self.config.NUM_EXAMPLES = num_training_examples
+                # self.config.NUM_EXAMPLES = num_training_examples
                 print('Dictionaries loaded.')
-        
+
+        if config.TRAIN_PATH:
+            with open(config.TRAIN_PATH, 'r') as file:
+                i = 0
+                for i, l in enumerate(file):
+                    pass
+                self.config.NUM_EXAMPLES = i + 1
+
         if config.LOAD_PATH:
             self.load_model(sess=None)
         else:
